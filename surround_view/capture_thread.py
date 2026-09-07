@@ -10,10 +10,10 @@ class CaptureThread(BaseThread):
 
     def __init__(self,
                  device_id,
-                 flip_method=2,
+                 flip_method=0,
                  drop_if_full=True,
                  api_preference=cv2.CAP_GSTREAMER,
-                 resolution=None,
+                 resolution=(640,480),
                  use_gst=True,
                  parent=None):
         """

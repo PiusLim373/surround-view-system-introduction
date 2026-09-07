@@ -143,18 +143,19 @@ class BirdView(BaseThread):
         self.frames = images
 
     def load_weights_and_masks(self, weights_image, masks_image):
-        GMat = np.asarray(Image.open(weights_image).convert("RGBA"), dtype=np.float64) / 255.0
+        GMat = np.asarray(Image.open(weights_image).convert("RGBA"), dtype=float) / 255.0
         self.weights = [np.stack((GMat[:, :, k],
                                   GMat[:, :, k],
                                   GMat[:, :, k]), axis=2)
                         for k in range(4)]
 
-        Mmat = np.asarray(Image.open(masks_image).convert("RGBA"), dtype=np.float64)
+        Mmat = np.asarray(Image.open(masks_image).convert("RGBA"), dtype=float)
         Mmat = utils.convert_binary_to_bool(Mmat)
         self.masks = [Mmat[:, :, k] for k in range(4)]
 
     def merge(self, imA, imB, k):
         G = self.weights[k]
+        # G = cv2.resize(G, (imA.shape[1], imA.shape[0]), interpolation=cv2.INTER_LINEAR_EXACT)
         return (imA * G + imB * (1 - G)).astype(np.uint8)
 
     @property
@@ -222,18 +223,26 @@ class BirdView(BaseThread):
         Lb, Lg, Lr = cv2.split(left)
         Rb, Rg, Rr = cv2.split(right)
 
+        #shape = (RII(Rb).shape[1], RII(Rb).shape[0])
+        #m2 = cv2.resize(m2, shape, interpolation=cv2.INTER_LINEAR_EXACT)
         a1 = utils.mean_luminance_ratio(RII(Rb), FII(Fb), m2)
         a2 = utils.mean_luminance_ratio(RII(Rg), FII(Fg), m2)
         a3 = utils.mean_luminance_ratio(RII(Rr), FII(Fr), m2)
 
+        #shape = (BIV(Bb).shape[1], BIV(Bb).shape[0])
+        #m4 = cv2.resize(m4, shape, interpolation=cv2.INTER_LINEAR_EXACT)
         b1 = utils.mean_luminance_ratio(BIV(Bb), RIV(Rb), m4)
         b2 = utils.mean_luminance_ratio(BIV(Bg), RIV(Rg), m4)
         b3 = utils.mean_luminance_ratio(BIV(Br), RIV(Rr), m4)
 
+        #shape = (LIII(Lb).shape[1], LIII(Lb).shape[0])
+        #m3 = cv2.resize(m3, shape, interpolation=cv2.INTER_LINEAR_EXACT)
         c1 = utils.mean_luminance_ratio(LIII(Lb), BIII(Bb), m3)
         c2 = utils.mean_luminance_ratio(LIII(Lg), BIII(Bg), m3)
         c3 = utils.mean_luminance_ratio(LIII(Lr), BIII(Br), m3)
 
+        #shape = (FI(Fb).shape[1], FI(Fb).shape[0])
+        #m1 = cv2.resize(m1, shape, interpolation=cv2.INTER_LINEAR_EXACT)
         d1 = utils.mean_luminance_ratio(FI(Fb), LI(Lb), m1)
         d2 = utils.mean_luminance_ratio(FI(Fg), LI(Lg), m1)
         d3 = utils.mean_luminance_ratio(FI(Fr), LI(Lr), m1)

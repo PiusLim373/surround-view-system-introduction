@@ -1,20 +1,21 @@
 import cv2
 import numpy as np
 
-
-def display_image(window_title, image, wait=True):
-    # 先创建窗口，再设置属性
-    cv2.namedWindow(window_title, cv2.WINDOW_AUTOSIZE)
+# return -1 if user press 'q'. return 1 if user press 'Enter'.
+def display_image(window_title, image):
     cv2.imshow(window_title, image)
+    while True:
+        click = cv2.getWindowProperty(window_title, cv2.WND_PROP_AUTOSIZE)
+        if click < 0:
+            return -1
 
-    click = cv2.getWindowProperty(window_title, cv2.WND_PROP_AUTOSIZE)
-    if click > -1:
-        key = cv2.waitKey(0) if wait else cv2.waitKey(1)
+        key = cv2.waitKey(1) & 0xFF
         if key == ord("q"):
-            cv2.destroyAllWindows()
-            return False
+            return -1
 
-    return True
+        # 'Enter' key is detected!
+        if key == 13:
+            return 1
 
 
 class PointSelector(object):
