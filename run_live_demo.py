@@ -7,15 +7,15 @@ import surround_view.param_settings as settings
 
 
 yamls_dir = os.path.join(os.getcwd(), "yaml")
-camera_ids = [4, 3, 5, 6]
-flip_methods = [0, 2, 0, 2]
+camera_ids = [6,0,4,2]
+flip_methods = [0, 0, 2, 2]
 names = settings.camera_names
 cameras_files = [os.path.join(yamls_dir, name + ".yaml") for name in names]
 camera_models = [FisheyeCameraModel(camera_file, name) for camera_file, name in zip(cameras_files, names)]
 
 
 def main():
-    capture_tds = [CaptureThread(camera_id, flip_method)
+    capture_tds = [CaptureThread(camera_id, flip_method, resolution=(640,480), use_gst=False)
                    for camera_id, flip_method in zip(camera_ids, flip_methods)]
     capture_buffer_manager = MultiBufferManager()
     for td in capture_tds:
@@ -36,7 +36,7 @@ def main():
     birdview.load_weights_and_masks("./weights.png", "./masks.png")
     birdview.start()
     while True:
-        img = cv2.resize(birdview.get(), (300, 400))
+        img = cv2.resize(birdview.get(), (780, 1040))
         cv2.imshow("birdview", img)
         key = cv2.waitKey(1) & 0xFF
         if key == ord("q"):

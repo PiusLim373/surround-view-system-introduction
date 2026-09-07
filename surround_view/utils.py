@@ -2,28 +2,21 @@ import cv2
 import numpy as np
 
 
-def gstreamer_pipeline(cam_id=0,
-                       capture_width=960,
-                       capture_height=640,
-                       framerate=60,
-                       flip_method=2):
+def gstreamer_pipeline(cam_id=4,
+                       capture_width=640,
+                       capture_height=480,
+                       framerate=30,
+                       flip_method=0):
     """
-    Use libgstreamer to open csi-cameras.
+    Use gstreamer to open USB cameras.
     """
-    return ("nvarguscamerasrc sensor-id={} ! ".format(cam_id) + \
-            "video/x-raw(memory:NVMM), "
-            "width=(int)%d, height=(int)%d, "
-            "format=(string)NV12, framerate=(fraction)%d/1 ! "
-            "nvvidconv flip-method=%d ! "
-            "video/x-raw, format=(string)BGRx ! "
-            "videoconvert ! "
-            "video/x-raw, format=(string)BGR ! appsink"
-            % (capture_width,
-               capture_height,
-               framerate,
-               flip_method
-            )
+    return ("v4l2src device=/dev/video{} ! ".format(cam_id) +
+            "video/x-raw,"
+            "width=(int){}, height=(int){}, ".format(capture_width, capture_height) +
+            "framerate=(fraction){}/1 ! ".format(framerate) +
+            "videoconvert ! appsink"
     )
+
 
 
 def convert_binary_to_bool(mask):
@@ -31,7 +24,7 @@ def convert_binary_to_bool(mask):
     Convert a binary image (only one channel and pixels are 0 or 255) to
     a bool one (all pixels are 0 or 1).
     """
-    return (mask.astype(np.float64) / 255.0).astype(int)
+    return (mask.astype(float) / 255.0).astype(int)
 
 
 def adjust_luminance(gray, factor):
@@ -111,7 +104,8 @@ def get_weight_mask_matrix(imA, imB, dist_threshold=5):
     polyB = get_outmost_polygon_boundary(imB_diff)
 
     for y, x in zip(*indices):
-        # opencv requires a tuple of ints
+
+        #convert this x,y int an INT tuple
         xy_tuple = tuple([int(x), int(y)])
         distToB = cv2.pointPolygonTest(polyB, xy_tuple, True)
 
