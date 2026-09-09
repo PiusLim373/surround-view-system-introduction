@@ -1,12 +1,12 @@
 # TMMS two-camera runner
 
-This folder contains the runtime for `run_tmms_2cams.py`. The program opens the
+This folder contains the runtime for `run_tmms.py`. The program opens the
 front and back fisheye cameras, projects them using their calibration files,
 composes a two-camera view, and publishes it as a ROS 2 compressed-image topic.
 
 ## What the program does
 
-`run_tmms_2cams.py`:
+`run_tmms.py`:
 
 - Opens `/dev/front_cam` and `/dev/back_cam`.
 - Reads each camera's capture mode from `camera_config.json`.
@@ -26,7 +26,7 @@ frame-synchronised.
 
 | File | Purpose |
 | --- | --- |
-| `run_tmms_2cams.py` | Main executable. Camera selection, output size, display tuning, ROS topic, watchdog, and capture settings are defined here. |
+| `run_tmms.py` | Main executable. Camera selection, output size, display tuning, ROS topic, watchdog, and capture settings are defined here. |
 | `camera_config_loader.py` | Loads camera capture metadata from JSON. It supports stable `/dev/v4l/by-path/` identities and fallback `/dev/videoN` nodes. |
 | `surround_view/` | Camera capture, buffering, fisheye projection, image processing, and view-composition library used by the runner. |
 | `surround_view/two_camera_view.py` | Composes the front/back projected layers and the center image. |
@@ -54,7 +54,7 @@ configuration files.
 
 ## Things that can be changed
 
-### Usually safe to change in `run_tmms_2cams.py`
+### Usually safe to change in `run_tmms.py`
 
 Near the top of the file:
 
@@ -144,18 +144,18 @@ The following assumes a Linux machine with ROS 2 and V4L2 cameras:
    python3 discover_cameras.py --out camera_config.json
    ```
 
-6. Edit `POSITION_TO_CONFIG_KEY` in `run_tmms_2cams.py` so its `front` and
+6. Edit `POSITION_TO_CONFIG_KEY` in `run_tmms.py` so its `front` and
    `back` paths identify the same physical cameras as `/dev/front_cam` and
    `/dev/back_cam`. This mapping is intentionally checked at startup.
 
-## Running `run_tmms_2cams.py`
+## Running `run_tmms.py`
 
 From this directory:
 
 ```bash
 cd /path/to/run_tmms_ws
 source /opt/ros/<your_ros2_distribution>/setup.bash
-python3 -u run_tmms_2cams.py
+python3 -u run_tmms.py
 ```
 
 Expected output includes a successful front/back pipeline message and:
