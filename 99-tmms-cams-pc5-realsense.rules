@@ -1,0 +1,3 @@
+# Realsense cams
+SUBSYSTEM=="video4linux", ENV{ID_PATH}=="platform-3610000.xhci-usb-0:3.4:1.0", ATTR{index}=="4", SYMLINK+="wrist_cam"
+SUBSYSTEM=="video4linux", ENV{ID_PATH}=="platform-3610000.xhci-usb-0:3.3:1.0", ATTR{index}=="4", SYMLINK+="third_person_cam"
