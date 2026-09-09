@@ -31,10 +31,14 @@ class Buffer(object):
 
         self.clear_buffer_add.release()
 
-    def get(self):
+    def get(self, timeout_ms=None):
         # acquire semaphores
         self.clear_buffer_get.acquire()
-        self.used_slots.acquire()
+        if timeout_ms is None:
+            self.used_slots.acquire()
+        elif not self.used_slots.tryAcquire(1, timeout_ms):
+            self.clear_buffer_get.release()
+            return None
         self.queue_mutex.lock()
         data = self.queue.get()
         self.queue_mutex.unlock()
@@ -125,7 +129,7 @@ class MultiBufferManager(object):
     def sync(self, device_id):
         # only perform sync if enabled for specified device/stream
         self.mutex.lock()
-        if device_id in self.sync_devices:
+        if self.do_sync and device_id in self.sync_devices:
             # increment arrived count
             self.arrived += 1
             # we are the last to arrive: wake all waiting threads

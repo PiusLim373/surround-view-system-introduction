@@ -15,7 +15,8 @@ class CameraProcessingThread(BaseThread):
                  device_id,
                  camera_model,
                  drop_if_full=True,
-                 parent=None):
+                 parent=None,
+                 frame_transform=None):
         """
         capture_buffer_manager: an instance of the `MultiBufferManager` object.
         device_id: device number of the camera to be processed.
@@ -27,6 +28,8 @@ class CameraProcessingThread(BaseThread):
         self.device_id = device_id
         self.camera_model = camera_model
         self.drop_if_full = drop_if_full
+        # Optional fused raw-to-display transform for the two-camera UI.
+        self.frame_transform = frame_transform
         # an instance of the `ProjectedImageBuffer` object
         self.proc_buffer_manager = None
 
@@ -45,15 +48,20 @@ class CameraProcessingThread(BaseThread):
             self.processing_time = self.clock.elapsed()
             self.clock.start()
 
+            raw_frame = self.capture_buffer_manager.get_device(self.device_id).get(timeout_ms=200)
+            if raw_frame is None:
+                continue
             self.processing_mutex.lock()
-            raw_frame = self.capture_buffer_manager.get_device(self.device_id).get()
-            und_frame = self.camera_model.undistort(raw_frame.image)
-            pro_frame = self.camera_model.project(und_frame)
-            flip_frame = self.camera_model.flip(pro_frame)
+            if self.frame_transform is not None:
+                flip_frame = self.frame_transform(raw_frame.image)
+            else:
+                und_frame = self.camera_model.undistort(raw_frame.image)
+                pro_frame = self.camera_model.project(und_frame)
+                flip_frame = self.camera_model.flip(pro_frame)
             self.processing_mutex.unlock()
 
-            self.proc_buffer_manager.sync(self.device_id)
             self.proc_buffer_manager.set_frame_for_device(self.device_id, flip_frame)
+            self.proc_buffer_manager.sync(self.device_id)
 
             # update statistics
             self.update_fps(self.processing_time)
