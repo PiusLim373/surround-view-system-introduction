@@ -189,7 +189,7 @@ class TwoCameraView:
             self.dog = cv2.resize(dog_image, (dog_width, dog_height), interpolation=cv2.INTER_AREA)
         else:
             dog_height, dog_width = min(int(dog_height), self.height // 3), 70
-        self.dog_rect = ((self.width - dog_width) // 2dog, (self.height - dog_height) // 2,
+        self.dog_rect = ((self.width - dog_width) // 2, (self.height - dog_height) // 2,
                          dog_width, dog_height)
         _, dog_y, _, dog_h = self.dog_rect
         # The cone tips extend slightly underneath the icon, removing the
