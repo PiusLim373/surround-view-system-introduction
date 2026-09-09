@@ -16,8 +16,9 @@ class ProjectedImageBuffer(object):
     Class for synchronizing processing threads from different cameras.
     """
 
-    def __init__(self, drop_if_full=True, buffer_size=8):
+    def __init__(self, drop_if_full=True, buffer_size=8, do_sync=True):
         self.drop_if_full = drop_if_full
+        self.do_sync = do_sync
         self.buffer = Buffer(buffer_size)
         self.sync_devices = set()
         self.wc = QWaitCondition()
@@ -40,17 +41,25 @@ class ProjectedImageBuffer(object):
     def set_frame_for_device(self, device_id, frame):
         if device_id not in self.sync_devices:
             raise ValueError("Device not held by the buffer: {}".format(device_id))
-        self.current_frames[device_id] = frame
+        with QMutexLocker(self.mutex):
+            self.current_frames[device_id] = frame
 
     def sync(self, device_id):
         # only perform sync if enabled for specified device/stream
         self.mutex.lock()
+        if not self.do_sync:
+            # Independent USB cameras: publish a snapshot of the latest images
+            # without making one camera wait for a slow/offline peer. Copy the
+            # dictionary so queued snapshots aren't mutated by future updates.
+            self.buffer.add(dict(self.current_frames), self.drop_if_full)
+            self.mutex.unlock()
+            return
         if device_id in self.sync_devices:
             # increment arrived count
             self.arrived += 1
             # we are the last to arrive: wake all waiting threads
             if self.arrived == len(self.sync_devices):
-                self.buffer.add(self.current_frames, self.drop_if_full)
+                self.buffer.add(dict(self.current_frames), self.drop_if_full)
                 self.wc.wakeAll()
             # still waiting for other streams to arrive: wait
             else:
@@ -216,6 +225,21 @@ class BirdView(BaseThread):
             else:
                 return x * np.exp((1 - x) * 0.8)
 
+        def safe(x):
+            # a camera showing a black placeholder (offline/starved) has
+            # zero mean luminance, which turns some ratio above into 0/0 or
+            # x/0 -- NaN/inf then poisons t1/t2/t3, which are shared across
+            # ALL 4 cameras' adjustment factors, blacking out every quadrant
+            # instead of just the offline one. Non-finite values aren't the
+            # only failure mode: finite/inf legitimately evaluates to 0,
+            # which passes np.isfinite() but still zeroes out a camera's
+            # entire channel via adjust_luminance() -- so also reject
+            # non-positive results, and clamp outliers to a sane range
+            # instead of trusting arithmetic derived from a black region.
+            if not np.isfinite(x) or x <= 0:
+                return 1.0
+            return min(max(x, 0.2), 5.0)
+
         front, back, left, right = self.frames
         m1, m2, m3, m4 = self.masks
         Fb, Fg, Fr = cv2.split(front)
@@ -247,13 +271,13 @@ class BirdView(BaseThread):
         d2 = utils.mean_luminance_ratio(FI(Fg), LI(Lg), m1)
         d3 = utils.mean_luminance_ratio(FI(Fr), LI(Lr), m1)
 
-        t1 = (a1 * b1 * c1 * d1)**0.25
-        t2 = (a2 * b2 * c2 * d2)**0.25
-        t3 = (a3 * b3 * c3 * d3)**0.25
+        t1 = safe((a1 * b1 * c1 * d1)**0.25)
+        t2 = safe((a2 * b2 * c2 * d2)**0.25)
+        t3 = safe((a3 * b3 * c3 * d3)**0.25)
 
-        x1 = t1 / (d1 / a1)**0.5
-        x2 = t2 / (d2 / a2)**0.5
-        x3 = t3 / (d3 / a3)**0.5
+        x1 = safe(t1 / (d1 / a1)**0.5)
+        x2 = safe(t2 / (d2 / a2)**0.5)
+        x3 = safe(t3 / (d3 / a3)**0.5)
 
         x1 = tune(x1)
         x2 = tune(x2)
@@ -263,9 +287,9 @@ class BirdView(BaseThread):
         Fg = utils.adjust_luminance(Fg, x2)
         Fr = utils.adjust_luminance(Fr, x3)
 
-        y1 = t1 / (b1 / c1)**0.5
-        y2 = t2 / (b2 / c2)**0.5
-        y3 = t3 / (b3 / c3)**0.5
+        y1 = safe(t1 / (b1 / c1)**0.5)
+        y2 = safe(t2 / (b2 / c2)**0.5)
+        y3 = safe(t3 / (b3 / c3)**0.5)
 
         y1 = tune(y1)
         y2 = tune(y2)
@@ -275,9 +299,9 @@ class BirdView(BaseThread):
         Bg = utils.adjust_luminance(Bg, y2)
         Br = utils.adjust_luminance(Br, y3)
 
-        z1 = t1 / (c1 / d1)**0.5
-        z2 = t2 / (c2 / d2)**0.5
-        z3 = t3 / (c3 / d3)**0.5
+        z1 = safe(t1 / (c1 / d1)**0.5)
+        z2 = safe(t2 / (c2 / d2)**0.5)
+        z3 = safe(t3 / (c3 / d3)**0.5)
 
         z1 = tune(z1)
         z2 = tune(z2)
@@ -287,9 +311,9 @@ class BirdView(BaseThread):
         Lg = utils.adjust_luminance(Lg, z2)
         Lr = utils.adjust_luminance(Lr, z3)
 
-        w1 = t1 / (a1 / b1)**0.5
-        w2 = t2 / (a2 / b2)**0.5
-        w3 = t3 / (a3 / b3)**0.5
+        w1 = safe(t1 / (a1 / b1)**0.5)
+        w2 = safe(t2 / (a2 / b2)**0.5)
+        w3 = safe(t3 / (a3 / b3)**0.5)
 
         w1 = tune(w1)
         w2 = tune(w2)

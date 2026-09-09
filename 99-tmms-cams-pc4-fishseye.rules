@@ -1,0 +1,6 @@
+# Fisheye cams — single capture node (index0) per port
+# pc4 topology (from lsusb -t): xHCI root -> hub Port3 -> hub Port2 -> cam Port{1-4}
+SUBSYSTEM=="video4linux", ENV{ID_PATH}=="pci-0000:00:14.0-usb-0:3.4.4:1.0", ATTR{index}=="0", SYMLINK+="front_cam"
+# SUBSYSTEM=="video4linux", ENV{ID_PATH}=="pci-0000:00:14.0-usb-0:1.4:1.0", ATTR{index}=="0", SYMLINK+="left_cam"
+# SUBSYSTEM=="video4linux", ENV{ID_PATH}=="pci-0000:00:14.0-usb-0:1.3:1.0", ATTR{index}=="0", SYMLINK+="right_cam"
+SUBSYSTEM=="video4linux", ENV{ID_PATH}=="pci-0000:00:14.0-usb-0:3.4.1:1.0", ATTR{index}=="0", SYMLINK+="back_cam"

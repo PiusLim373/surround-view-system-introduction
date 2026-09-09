@@ -10,7 +10,7 @@ camera_names = ["front", "back", "left", "right"]
 shift_w = 90
 shift_h = 75
 
-# size of the gap between the calibration pattern and the car
+# size of the gap between the calibration pattern and the dog image
 # in horizontal and vertical directions
 inn_shift_w = 55
 inn_shift_h = 70
@@ -19,7 +19,7 @@ inn_shift_h = 70
 total_w = 320 + 2 * shift_w
 total_h = 400 + 2 * shift_h
 
-# four corners of the rectangular region occupied by the car
+# four corners of the rectangular region occupied by the dog image
 # top-left (x_left, y_top), bottom-right (x_right, y_bottom)
 xl = shift_w + 80 + inn_shift_w
 xr = total_w - xl
@@ -59,5 +59,5 @@ project_keypoints = {
               (total_h - shift_h - 80, shift_w)],
 }
 
-car_image = cv2.imread(os.path.join(os.getcwd(), "images", "dog.png"))
-car_image = cv2.resize(car_image, (xr - xl, yb - yt))
+dog_image = cv2.imread(os.path.join(os.path.dirname(__file__), "..", "images", "dog.png"))
+dog_image = cv2.resize(dog_image, (xr - xl, yb - yt))
